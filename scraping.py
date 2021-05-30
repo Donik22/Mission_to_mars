@@ -24,8 +24,11 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        "hemispheres": mars_hemi()
     }
+
+
 
     # Stop webdriver and return data
     browser.quit()
@@ -87,6 +90,7 @@ def featured_image(browser):
     return img_url
 
 def mars_facts():
+
     # Add try/except for error handling
     try:
         # Use 'read_html' to scrape the facts table into a dataframe
@@ -102,7 +106,87 @@ def mars_facts():
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
 
-if __name__ == "__main__":
 
+
+def mars_hemi():
+    
+    # Scrape High-Resolution Mars’ Hemisphere Images and Titles
+    # ### Hemispheres
+
+    executable_path = {'executable_path': ChromeDriverManager().install()}
+    browser = Browser('chrome', **executable_path, headless=False)
+
+
+    # 1. Use browser to visit the URL 
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+
+
+    browser.visit(url)
+
+    html = browser.html
+    img_soup = soup(html,'html.parser')
+
+
+    # In[181]:
+
+
+    # 2. Create a list to hold the images and titles.
+    links = []
+    title = []
+
+
+
+    # 3. Write code to retrieve the image urls and titles for each hemisphere.
+
+    results = img_soup.find_all('div', class_="collapsible results")
+    thumbnail_results = results[0].find_all('a')
+
+    href_link = []
+    hemisphere_image_urls = []
+
+    # Create a list to hold tittle and url
+    # get title
+    items = img_soup.find_all('div', class_='item')
+    for t in items:
+
+        
+        title.append(t.find('h3').text)
+
+    # Get links
+    for l in items:
+        partial_link = l.find('a').get('href')
+        links.append('https://astrogeology.usgs.gov/' + partial_link)
+    for link in links:
+        
+        # Create dict to hold results
+        
+        dict = {}
+        
+        #visit link
+        browser.visit(link)
+        
+        # Parse with soup
+        html = browser.html
+        href_soup = soup(html,'html.parser')
+        
+        
+        combined_link = href_soup.find('ul').find_all('li')[0].a['href']
+        
+        # add combined link to dict
+        dict["img_url"] = combined_link
+        
+        # get the title
+        title = href_soup.find('h2', class_='title').text
+        
+        dict["title"] = title
+        
+        # include title and url
+        
+        hemisphere_image_urls.append(dict)
+
+    return hemisphere_image_urls
+
+if __name__ == "__main__":
+    
     # If running as script, print scraped data
     print(scrape_all())
